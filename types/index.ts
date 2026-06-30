@@ -117,6 +117,13 @@ export interface Order {
   updatedAt: string;
 }
 
+export interface RouteWaypoint {
+  sequence: number;
+  type: "branch" | "pickup" | "delivery";
+  coordinates: [number, number];
+  orderId?: string;
+}
+
 export interface Route {
   id: string;
   code: string;
@@ -128,6 +135,7 @@ export interface Route {
   estimatedStartAt?: string;
   estimatedEndAt?: string;
   path?: { type: "LineString"; coordinates: [number, number][] };
+  waypoints?: RouteWaypoint[];
   metrics?: {
     plannedDistanceKm: number;
     actualDistanceKm?: number;

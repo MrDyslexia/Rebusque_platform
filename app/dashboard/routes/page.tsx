@@ -32,12 +32,13 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { branches } from "@/data";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { buildRoutePath, RoutingWaypoint } from "@/lib/routing";
 import { cn } from "@/lib/utils";
 import { useOrdersStore } from "@/store/orders";
 import { useRoutesStore } from "@/store/routes";
 import { useUsersStore } from "@/store/users";
 import { useVehiclesStore } from "@/store/vehicles";
-import { Order, Route, RouteStatus } from "@/types";
+import { Order, Route, RouteStatus, RouteWaypoint } from "@/types";
 
 const statuses: RouteStatus[] = ["planificado", "en_curso", "completado", "cancelado"];
 const today = new Date().toISOString().slice(0, 10);
@@ -126,30 +127,41 @@ function plannerReducer(state: PlannerState, action: PlannerAction): PlannerStat
 }
 
 function makeMarkerElement(label: string, variant: "branch" | "available" | "selected", sequence?: number) {
-  const el = document.createElement("button");
-  el.type = "button";
+  const el = document.createElement("div");
   el.className = cn(
-    "grid h-8 w-8 place-items-center rounded-full border-2 border-white text-xs font-bold shadow-lg transition-transform hover:scale-105",
+    "grid h-8 w-8 place-items-center rounded-full border-2 border-white text-xs font-bold shadow-lg",
     variant === "branch" && "bg-sky-500 text-white",
-    variant === "available" && "bg-background text-foreground",
+    variant === "available" && "cursor-pointer bg-background text-foreground transition-colors hover:bg-primary hover:text-primary-foreground",
     variant === "selected" && "bg-[#ff0066] text-white",
   );
+  el.setAttribute("role", variant === "available" ? "button" : "img");
+  if (variant === "available") el.setAttribute("tabindex", "0");
   el.setAttribute("aria-label", label);
   el.textContent = variant === "branch" ? "S" : sequence ? String(sequence) : "+";
   return el;
 }
 
-function estimateDistanceKm(coordinates: [number, number][]) {
-  if (coordinates.length < 2) return 0;
-  let total = 0;
-  for (let i = 1; i < coordinates.length; i += 1) {
-    const [lngA, latA] = coordinates[i - 1];
-    const [lngB, latB] = coordinates[i];
-    const latKm = (latB - latA) * 111;
-    const lngKm = (lngB - lngA) * 111 * Math.cos(((latA + latB) / 2) * (Math.PI / 180));
-    total += Math.sqrt(latKm ** 2 + lngKm ** 2);
-  }
-  return Math.round(total * 10) / 10;
+function addMarkerActivation(element: HTMLElement, handler: () => void) {
+  const handleClick = (event: MouseEvent) => {
+    event.stopPropagation();
+    handler();
+  };
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    event.stopPropagation();
+    handler();
+  };
+  element.addEventListener("click", handleClick);
+  element.addEventListener("keydown", handleKeyDown);
+  return () => {
+    element.removeEventListener("click", handleClick);
+    element.removeEventListener("keydown", handleKeyDown);
+  };
+}
+
+function routePopupHtml(title: string, detail: string) {
+  return `<div style="color:#111827;background:#ffffff;font-size:13px;line-height:1.4"><strong style="color:#111827">${title}</strong><br/><span style="color:#374151">${detail}</span></div>`;
 }
 
 function isRoutableOrder(order: Order) {
@@ -184,9 +196,11 @@ export default function RoutesPage() {
   const branch = branches.find((item) => item.id === branchId) ?? branches[0];
   const branchVehicles = vehicles.filter((vehicle) => vehicle.branchId === branchId);
   const branchDrivers = users.filter((user) => user.role === "driver" && user.branchId === branchId);
-  const selectedOrders = selectedOrderIds
-    .map((id) => orders.find((order) => order.id === id))
-    .filter((order): order is Order => Boolean(order));
+  const selectedOrders = useMemo(() => {
+    return selectedOrderIds
+      .map((id) => orders.find((order) => order.id === id))
+      .filter((order): order is Order => Boolean(order));
+  }, [orders, selectedOrderIds]);
 
   const availableOrders = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -205,15 +219,24 @@ export default function RoutesPage() {
     return routes.filter((route) => (statusFilter ? route.status === statusFilter : true));
   }, [routes, statusFilter]);
 
-  const routeCoordinates = useMemo(() => {
-    const selectedCoordinates = selectedOrders
-      .map((order) => order.destination.coordinates)
-      .filter((coordinates): coordinates is [number, number] => Boolean(coordinates));
-    return branch ? [branch.coordinates, ...selectedCoordinates] : selectedCoordinates;
+  const waypoints = useMemo<RoutingWaypoint[]>(() => {
+    const stops: RoutingWaypoint[] = [];
+    for (const [index, order] of selectedOrders.entries()) {
+      if (!order.destination.coordinates) continue;
+      stops.push({
+        coordinates: order.destination.coordinates,
+        type: "delivery",
+        orderId: order.id,
+        sequence: index + 1,
+      });
+    }
+    return branch ? [{ coordinates: branch.coordinates, type: "branch", sequence: 0 }, ...stops] : stops;
   }, [branch, selectedOrders]);
 
-  const plannedDistanceKm = estimateDistanceKm(routeCoordinates);
-  const estimatedMinutes = Math.max(0, Math.round(plannedDistanceKm * 3 + selectedOrders.length * 8));
+  const routePlan = useMemo(() => buildRoutePath(waypoints), [waypoints]);
+  const routeCoordinates = routePlan.path.coordinates;
+  const plannedDistanceKm = routePlan.distanceKm;
+  const estimatedMinutes = routePlan.estimatedMinutes;
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -261,19 +284,17 @@ export default function RoutesPage() {
 
       const branchMarker = new maplibregl.Marker({ element: makeMarkerElement(branch.name, "branch") })
         .setLngLat(branch.coordinates)
-        .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(`<strong>${branch.name}</strong><br/>${branch.address}`))
+        .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(routePopupHtml(branch.name, branch.address)))
         .addTo(map);
       markersRef.current.push(branchMarker);
 
       availableOrders.forEach((order) => {
         if (!order.destination.coordinates) return;
         const element = makeMarkerElement(`Agregar ${order.trackingNumber}`, "available");
-        const handleClick = () => addStop(order.id);
-        element.addEventListener("click", handleClick);
-        markerClickCleanups.push(() => element.removeEventListener("click", handleClick));
+        markerClickCleanups.push(addMarkerActivation(element, () => addStop(order.id)));
         const marker = new maplibregl.Marker({ element })
           .setLngLat(order.destination.coordinates)
-          .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(`<strong>${order.trackingNumber}</strong><br/>${order.destination.recipientName}`))
+          .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(routePopupHtml(order.trackingNumber, order.destination.recipientName)))
           .addTo(map);
         markersRef.current.push(marker);
       });
@@ -282,7 +303,7 @@ export default function RoutesPage() {
         if (!order.destination.coordinates) return;
         const marker = new maplibregl.Marker({ element: makeMarkerElement(order.trackingNumber, "selected", index + 1) })
           .setLngLat(order.destination.coordinates)
-          .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(`<strong>${index + 1}. ${order.trackingNumber}</strong><br/>${order.destination.address}`))
+          .setPopup(new maplibregl.Popup({ offset: 18 }).setHTML(routePopupHtml(`${index + 1}. ${order.trackingNumber}`, order.destination.address)))
           .addTo(map);
         markersRef.current.push(marker);
       });
@@ -310,15 +331,6 @@ export default function RoutesPage() {
         });
       }
 
-      if (routeCoordinates.length > 1) {
-        const bounds = routeCoordinates.reduce(
-          (currentBounds, coordinates) => currentBounds.extend(coordinates),
-          new maplibregl.LngLatBounds(routeCoordinates[0], routeCoordinates[0]),
-        );
-        map.fitBounds(bounds, { padding: 80, maxZoom: 13, duration: 600 });
-      } else {
-        map.flyTo({ center: branch.coordinates, zoom: 11, pitch: 28, bearing: -8 });
-      }
     };
 
     if (map.isStyleLoaded()) {
@@ -332,6 +344,22 @@ export default function RoutesPage() {
       markerClickCleanups = [];
     };
   }, [availableOrders, branch, mapLoaded, resolvedTheme, routeCoordinates, selectedOrders]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded || !branch) return;
+
+    if (routeCoordinates.length > 1) {
+      const bounds = routeCoordinates.reduce(
+        (currentBounds, coordinates) => currentBounds.extend(coordinates),
+        new maplibregl.LngLatBounds(routeCoordinates[0], routeCoordinates[0]),
+      );
+      map.fitBounds(bounds, { padding: 80, maxZoom: 13, duration: 300 });
+      return;
+    }
+
+    map.flyTo({ center: branch.coordinates, zoom: 11, pitch: 28, bearing: -8, duration: 300 });
+  }, [branch, mapLoaded, routeCoordinates]);
 
   function setShiftWindow(nextShift: ShiftKey) {
     dispatchPlanner({ type: "setShift", shift: nextShift });
@@ -367,7 +395,15 @@ export default function RoutesPage() {
       driverId,
       estimatedStartAt: `${date}T${startTime}:00Z`,
       estimatedEndAt: `${date}T${endTime}:00Z`,
-      path: routeCoordinates.length >= 2 ? { type: "LineString", coordinates: routeCoordinates } : undefined,
+      path: routePlan.path.coordinates.length >= 2 ? routePlan.path : undefined,
+      waypoints: waypoints.length > 0
+        ? waypoints.map<RouteWaypoint>((waypoint) => ({
+            sequence: waypoint.sequence,
+            type: waypoint.type,
+            coordinates: waypoint.coordinates,
+            orderId: waypoint.orderId,
+          }))
+        : undefined,
       metrics: {
         plannedDistanceKm,
         plannedTimeMin: estimatedMinutes,
