@@ -1,0 +1,58 @@
+import { Tariff } from "@/types";
+
+export const tariffs: Tariff[] = [
+  {
+    id: "tar_001",
+    originZone: "RM-NORTE",
+    destinationZone: "RM-NORTE",
+    serviceType: "estandar",
+    vehicleType: "moto",
+    baseAmount: 2500,
+    weightTiers: [
+      { maxWeight: 1, baseRate: 1500, perKgRate: 0 },
+      { maxWeight: 5, baseRate: 2000, perKgRate: 300 },
+    ],
+    volumeRateM3: 15000,
+    sameDayMultiplier: 1.0,
+    fuelSurchargePercent: 3.5,
+    effectiveDate: "2026-06-01",
+    expiresDate: "2026-12-31",
+    active: true,
+  },
+  {
+    id: "tar_002",
+    originZone: "RM-NORTE",
+    destinationZone: "RM-SUR",
+    serviceType: "estandar",
+    vehicleType: "furgon",
+    baseAmount: 4500,
+    weightTiers: [
+      { maxWeight: 5, baseRate: 2500, perKgRate: 300 },
+      { maxWeight: 20, baseRate: 4000, perKgRate: 200 },
+    ],
+    volumeRateM3: 15000,
+    sameDayMultiplier: 1.0,
+    fuelSurchargePercent: 3.5,
+    effectiveDate: "2026-06-01",
+    expiresDate: "2026-12-31",
+    active: true,
+  },
+  {
+    id: "tar_003",
+    originZone: "RM-NORTE",
+    destinationZone: "RM-SUR",
+    serviceType: "mismo_dia",
+    vehicleType: "camion",
+    baseAmount: 8500,
+    weightTiers: [
+      { maxWeight: 10, baseRate: 4000, perKgRate: 350 },
+      { maxWeight: 50, baseRate: 7000, perKgRate: 250 },
+    ],
+    volumeRateM3: 15000,
+    sameDayMultiplier: 1.5,
+    fuelSurchargePercent: 3.5,
+    effectiveDate: "2026-06-01",
+    expiresDate: "2026-12-31",
+    active: true,
+  },
+];
