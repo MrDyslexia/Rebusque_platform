@@ -57,7 +57,7 @@ export const orders: Order[] = [
       coordinates: [-70.615, -33.425],
       deliveryWindows: [{ date: "2026-06-30", start: "14:00", end: "18:00" }],
     },
-    sender: { name: "Chilexpress", rut: "96.123.456-7" },
+    sender: { clientId: "cli_chilexpress", name: "Chilexpress", rut: "96.123.456-7" },
     billing: { status: "pendiente", amount: 6500, tax: 0, total: 7735 },
     history: [
       { status: "INGRESADO", at: "2026-06-30T09:00:00Z", by: "usr_002", notes: "Bulto CHX-998877" },
@@ -121,7 +121,7 @@ export const orders: Order[] = [
       coordinates: [-70.655, -33.485],
       deliveryWindows: [{ date: "2026-06-30", start: "10:00", end: "14:00" }],
     },
-    sender: { name: "Mercado Libre", rut: "96.876.543-2" },
+    sender: { clientId: "cli_mercado_libre", name: "Mercado Libre", rut: "96.876.543-2" },
     routeAssignment: {
       routeId: "rut_20260630_002",
       vehicleId: "veh_003",
@@ -157,7 +157,7 @@ export const orders: Order[] = [
       coordinates: [-70.57, -33.4],
       deliveryWindows: [{ date: "2026-07-01", start: "09:00", end: "13:00" }],
     },
-    sender: { name: "Empresa SA", rut: "76.543.210-K", phone: "+56987654321", email: "empresa@mail.com" },
+    sender: { clientId: "cli_empresa_sa", name: "Empresa SA", rut: "76.543.210-K", phone: "+56987654321", email: "empresa@mail.com" },
     billing: { status: "pendiente", amount: 18500, tax: 3515, total: 22015 },
     history: [{ status: "INGRESADO", at: "2026-06-30T10:00:00Z", by: "usr_002" }],
     createdAt: "2026-06-30T10:00:00Z",

@@ -8,6 +8,7 @@ import {
   LogOut,
   Map,
   Package,
+  UserRound,
   Route,
   Settings,
   Truck,
@@ -20,6 +21,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/orders", label: "Encomiendas", icon: Package },
+  { href: "/dashboard/clients", label: "Clientes", icon: UserRound },
   { href: "/dashboard/routes", label: "Rutas", icon: Route },
   { href: "/dashboard/vehicles", label: "Vehículos", icon: Truck },
   { href: "/dashboard/map", label: "Mapa en vivo", icon: Map },

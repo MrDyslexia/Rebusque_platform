@@ -46,6 +46,20 @@ export interface User {
   active: boolean;
 }
 
+export interface Client {
+  id: string;
+  rut: string;
+  name: string;
+  email: string;
+  phone: string;
+  type: "persona" | "empresa" | "integracion";
+  address: string;
+  commune: string;
+  notes?: string;
+  createdAt: string;
+  active: boolean;
+}
+
 export interface Vehicle {
   id: string;
   code: string;
