@@ -1,11 +1,17 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { OrderStatusBadge, RouteStatusBadge, VehicleStatusBadge } from "@/components/status-badge";
 import { useOrdersStore } from "@/store/orders";
 import { useRoutesStore } from "@/store/routes";
 import { useVehiclesStore } from "@/store/vehicles";
 import { useUsersStore } from "@/store/users";
+import { OrderFormDialog } from "@/components/forms/order-form-dialog";
+import { RouteFormDialog } from "@/components/forms/route-form-dialog";
+import { UserFormDialog } from "@/components/forms/user-form-dialog";
 import { formatCurrency } from "@/lib/format";
 import {
   Table,
@@ -21,6 +27,7 @@ import {
   CheckCircle2,
   Clock,
   Package,
+  Plus,
   Route,
   Truck,
   Users,
@@ -34,10 +41,15 @@ function countBy<T extends string>(items: { status: T }[]) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const orders = useOrdersStore((s) => s.orders);
   const routes = useRoutesStore((s) => s.routes);
   const vehicles = useVehiclesStore((s) => s.vehicles);
   const users = useUsersStore((s) => s.users);
+
+  const [orderFormOpen, setOrderFormOpen] = useState(false);
+  const [routeFormOpen, setRouteFormOpen] = useState(false);
+  const [userFormOpen, setUserFormOpen] = useState(false);
 
   const orderCounts = countBy(orders);
   const routeCounts = countBy(routes);
@@ -50,6 +62,12 @@ export default function DashboardPage() {
     { label: "Pendiente de pago", value: formatCurrency(pendingPayment), icon: Activity, color: "text-emerald-400" },
   ];
 
+  const quickActions = [
+    { label: "Nueva encomienda", icon: Package, onClick: () => setOrderFormOpen(true), variant: "default" as const },
+    { label: "Nueva ruta", icon: Route, onClick: () => setRouteFormOpen(true), variant: "default" as const },
+    { label: "Nuevo usuario", icon: Users, onClick: () => setUserFormOpen(true), variant: "default" as const },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -57,9 +75,40 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Resumen operativo de El Rebusque — {new Date().toLocaleDateString("es-CL")}</p>
       </div>
 
+      <Card className="border-dashed bg-gradient-to-br from-[#ff0066]/5 to-transparent">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Accesos directos</CardTitle>
+          <CardDescription>Crear registres rápidos sin salir del dashboard</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {quickActions.map((action) => (
+              <Button
+                key={action.label}
+                className={
+                  action.variant === "default"
+                    ? "h-auto justify-start gap-3 bg-[#ff0066] py-4 hover:bg-[#ff0066]/90"
+                    : "h-auto justify-start gap-3 py-4"
+                }
+                variant={action.variant === "default" ? "default" : "outline"}
+                onClick={action.onClick}
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
+                  <action.icon className="h-5 w-5" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">{action.label}</p>
+                  <p className="text-xs opacity-80">Abrir formulario</p>
+                </div>
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.label}>
+          <Card key={stat.label} className="cursor-pointer transition-shadow hover:shadow-md" onClick={() => router.push("/dashboard/orders")}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
               <stat.icon className={`h-5 w-5 ${stat.color}`} aria-hidden="true" />
@@ -168,6 +217,10 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      <OrderFormDialog open={orderFormOpen} onOpenChange={setOrderFormOpen} />
+      <RouteFormDialog open={routeFormOpen} onOpenChange={setRouteFormOpen} />
+      <UserFormDialog open={userFormOpen} onOpenChange={setUserFormOpen} />
     </div>
   );
 }

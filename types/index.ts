@@ -18,6 +18,18 @@ export type ServiceType = "estandar" | "express" | "mismo_dia" | "programado";
 export type OrderType = "propio" | "chilexpress" | "starken" | "mercado_libre";
 export type VehicleType = "moto" | "furgon" | "camion";
 export type VehicleStatus = "disponible" | "en_ruta" | "mantenimiento" | "fuera_de_servicio";
+export type MaintenanceStatus = "programada" | "en_progreso" | "completada" | "cancelada";
+export type MaintenanceType =
+  | "preventiva"
+  | "correctiva"
+  | "revision_tecnica"
+  | "cambio_aceite"
+  | "frenos"
+  | "neumaticos"
+  | "bateria"
+  | "electronica"
+  | "carroceria"
+  | "otro";
 export type RouteStatus = "planificado" | "en_curso" | "completado" | "cancelado";
 export type BillingStatus = "pendiente" | "facturado" | "pagado" | "anulado";
 
@@ -60,6 +72,23 @@ export interface Client {
   active: boolean;
 }
 
+export interface Maintenance {
+  id: string;
+  vehicleId: string;
+  date: string;
+  type: MaintenanceType;
+  description: string;
+  provider?: string;
+  cost?: number;
+  odometerKm?: number;
+  nextDate?: string;
+  nextOdometerKm?: number;
+  status: MaintenanceStatus;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Vehicle {
   id: string;
   code: string;
@@ -71,7 +100,7 @@ export interface Vehicle {
   currentLocation?: [number, number];
   currentDriverId?: string | null;
   currentRouteId?: string | null;
-  maintenanceHistory: { date: string; description: string; cost?: number; nextDate?: string }[];
+  maintenanceHistory: Maintenance[];
   active: boolean;
 }
 

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 import { vehicles as seedVehicles } from "@/data";
-import { Vehicle } from "@/types";
+import { Maintenance, Vehicle } from "@/types";
 
 function nextCode(existing: Vehicle[]) {
   const max = existing.reduce((acc, v) => {
@@ -11,15 +11,23 @@ function nextCode(existing: Vehicle[]) {
   return `CAM-${String(max + 1).padStart(3, "0")}`;
 }
 
+function nowIso() {
+  return new Date().toISOString();
+}
+
 interface VehiclesState {
   vehicles: Vehicle[];
   addVehicle: (vehicle: Omit<Vehicle, "id" | "code" | "maintenanceHistory" | "active">) => void;
   updateVehicle: (id: string, vehicle: Partial<Vehicle>) => void;
   removeVehicle: (id: string) => void;
+  addMaintenance: (vehicleId: string, maintenance: Omit<Maintenance, "id" | "vehicleId" | "createdAt" | "updatedAt">) => void;
+  updateMaintenance: (vehicleId: string, maintenanceId: string, maintenance: Partial<Maintenance>) => void;
+  removeMaintenance: (vehicleId: string, maintenanceId: string) => void;
 }
 
 export const useVehiclesStore = create<VehiclesState>((set, get) => ({
   vehicles: seedVehicles,
+
   addVehicle: (vehicle) =>
     set((state) => ({
       vehicles: [
@@ -33,12 +41,55 @@ export const useVehiclesStore = create<VehiclesState>((set, get) => ({
         },
       ],
     })),
+
   updateVehicle: (id, patch) =>
     set((state) => ({
       vehicles: state.vehicles.map((v) => (v.id === id ? { ...v, ...patch } : v)),
     })),
+
   removeVehicle: (id) =>
     set((state) => ({
       vehicles: state.vehicles.filter((v) => v.id !== id),
+    })),
+
+  addMaintenance: (vehicleId, maintenance) => {
+    const newMaintenance: Maintenance = {
+      ...maintenance,
+      id: `mnt_${Date.now()}`,
+      vehicleId,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    };
+
+    set((state) => ({
+      vehicles: state.vehicles.map((v) =>
+        v.id === vehicleId
+          ? { ...v, maintenanceHistory: [...v.maintenanceHistory, newMaintenance] }
+          : v
+      ),
+    }));
+  },
+
+  updateMaintenance: (vehicleId, maintenanceId, patch) =>
+    set((state) => ({
+      vehicles: state.vehicles.map((v) =>
+        v.id === vehicleId
+          ? {
+              ...v,
+              maintenanceHistory: v.maintenanceHistory.map((m) =>
+                m.id === maintenanceId ? { ...m, ...patch, updatedAt: nowIso() } : m
+              ),
+            }
+          : v
+      ),
+    })),
+
+  removeMaintenance: (vehicleId, maintenanceId) =>
+    set((state) => ({
+      vehicles: state.vehicles.map((v) =>
+        v.id === vehicleId
+          ? { ...v, maintenanceHistory: v.maintenanceHistory.filter((m) => m.id !== maintenanceId) }
+          : v
+      ),
     })),
 }));
