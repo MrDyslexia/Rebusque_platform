@@ -12,6 +12,7 @@ import { useUsersStore } from "@/store/users";
 import { User } from "@/types";
 import { UserFormDialog } from "@/components/forms/user-form-dialog";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
+import { toastSuccess, toastError, TOAST_MSGS } from "@/lib/toast";
 
 export default function UsersPage() {
   const users = useUsersStore((s) => s.users);
@@ -91,7 +92,14 @@ export default function UsersPage() {
         title="Eliminar usuario"
         description={`Esta acción eliminará a ${deletingUser?.name ?? ""} del sistema. No se puede deshacer.`}
         onConfirm={() => {
-          if (deletingUser) removeUser(deletingUser.id);
+          try {
+            if (deletingUser) {
+              removeUser(deletingUser.id);
+              toastSuccess(TOAST_MSGS.deleted("Usuario"));
+            }
+          } catch {
+            toastError(TOAST_MSGS.deleteError("el usuario"));
+          }
         }}
       />
     </div>

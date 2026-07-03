@@ -15,6 +15,7 @@ import { useOrdersStore } from "@/store/orders";
 import { branches } from "@/data";
 import { Order, OrderStatus, OrderType, ServiceType } from "@/types";
 import { formatRut } from "@/lib/rut";
+import { toastError, toastSuccess, TOAST_MSGS } from "@/lib/toast";
 import {
   runValidators,
   validateClPhone,
@@ -244,12 +245,18 @@ export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogPr
       billing: order?.billing ?? { status: "pendiente" as const, amount: 0, tax: 0, total: 0 },
     };
 
-    if (isEdit && order) {
-      updateOrder(order.id, basePayload);
-    } else {
-      addOrder(basePayload);
+    try {
+      if (isEdit && order) {
+        updateOrder(order.id, basePayload);
+        toastSuccess(TOAST_MSGS.updated("Encomienda"));
+      } else {
+        addOrder(basePayload);
+        toastSuccess(TOAST_MSGS.created("Encomienda"));
+      }
+      onOpenChange(false);
+    } catch {
+      toastError(TOAST_MSGS.saveError("la encomienda"));
     }
-    onOpenChange(false);
   }
 
   return (

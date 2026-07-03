@@ -14,6 +14,7 @@ import { useVehiclesStore } from "@/store/vehicles";
 import { branches } from "@/data";
 import { Role, User } from "@/types";
 import { formatRut } from "@/lib/rut";
+import { toastError, toastSuccess, TOAST_MSGS } from "@/lib/toast";
 import { runValidators, validateClPhone, validateEmail, validateRequired, validateRut } from "@/lib/validators";
 
 interface UserFormDialogProps {
@@ -148,12 +149,18 @@ export function UserFormDialog({ open, onOpenChange, user }: UserFormDialogProps
       vehicleId: needsVehicle ? form.vehicleId : undefined,
     };
 
-    if (isEdit && user) {
-      updateUser(user.id, payload);
-    } else {
-      addUser(payload);
+    try {
+      if (isEdit && user) {
+        updateUser(user.id, payload);
+        toastSuccess(TOAST_MSGS.updated("Usuario"));
+      } else {
+        addUser(payload);
+        toastSuccess(TOAST_MSGS.created("Usuario"));
+      }
+      onOpenChange(false);
+    } catch {
+      toastError(TOAST_MSGS.saveError("el usuario"));
     }
-    onOpenChange(false);
   }
 
   return (

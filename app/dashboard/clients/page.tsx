@@ -23,6 +23,7 @@ import { Dialog, DialogBody, DialogContent, DialogDescription, DialogHeader, Dia
 import { Input } from "@/components/ui/input";
 import { clients } from "@/data";
 import { formatCurrency, formatDate, formatDateTime, initials } from "@/lib/format";
+import { toastInfo, TOAST_MSGS } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useOrdersStore } from "@/store/orders";
 import { Client, Order } from "@/types";
@@ -355,7 +356,18 @@ function OrdersAuditSection({
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold">{order.trackingNumber}</p>
+                  <button
+                    type="button"
+                    title="Copiar tracking"
+                    className="font-semibold hover:text-primary transition-colors cursor-copy"
+                    onClick={() => {
+                      navigator.clipboard.writeText(order.trackingNumber).then(() =>
+                        toastInfo(`${TOAST_MSGS.copyToClipboard} — ${order.trackingNumber}`)
+                      );
+                    }}
+                  >
+                    {order.trackingNumber}
+                  </button>
                   <OrderStatusBadge status={order.status} />
                   {order.externalReference && <Badge variant="outline">Ref. {order.externalReference}</Badge>}
                 </div>

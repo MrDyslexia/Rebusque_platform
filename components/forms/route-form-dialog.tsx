@@ -13,6 +13,7 @@ import { useVehiclesStore } from "@/store/vehicles";
 import { useUsersStore } from "@/store/users";
 import { branches } from "@/data";
 import { Route, RouteStatus } from "@/types";
+import { toastError, toastSuccess, TOAST_MSGS } from "@/lib/toast";
 import { validateDate, validateTime } from "@/lib/validators";
 
 interface RouteFormDialogProps {
@@ -122,12 +123,18 @@ export function RouteFormDialog({ open, onOpenChange, route }: RouteFormDialogPr
       estimatedEndAt: `${form.date}T${form.estimatedEndAt}:00Z`,
     };
 
-    if (isEdit && route) {
-      updateRoute(route.id, payload);
-    } else {
-      addRoute(payload);
+    try {
+      if (isEdit && route) {
+        updateRoute(route.id, payload);
+        toastSuccess(TOAST_MSGS.updated("Ruta"));
+      } else {
+        addRoute(payload);
+        toastSuccess(TOAST_MSGS.created("Ruta"));
+      }
+      onOpenChange(false);
+    } catch {
+      toastError(TOAST_MSGS.saveError("la ruta"));
     }
-    onOpenChange(false);
   }
 
   return (

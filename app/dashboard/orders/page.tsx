@@ -23,6 +23,7 @@ import { formatCurrency } from "@/lib/format";
 import { Order, OrderStatus } from "@/types";
 import { OrderFormDialog } from "@/components/forms/order-form-dialog";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
+import { toastSuccess, toastError, TOAST_MSGS } from "@/lib/toast";
 
 const statuses: OrderStatus[] = [
   "INGRESADO",
@@ -180,7 +181,14 @@ export default function OrdersPage() {
         title="Eliminar encomienda"
         description={`Esta acción eliminará la encomienda ${deletingOrder?.trackingNumber ?? ""}. No se puede deshacer.`}
         onConfirm={() => {
-          if (deletingOrder) removeOrder(deletingOrder.id);
+          try {
+            if (deletingOrder) {
+              removeOrder(deletingOrder.id);
+              toastSuccess(TOAST_MSGS.deleted("Encomienda"));
+            }
+          } catch {
+            toastError(TOAST_MSGS.deleteError("la encomienda"));
+          }
         }}
       />
     </div>

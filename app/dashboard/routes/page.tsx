@@ -33,6 +33,7 @@ import { Select } from "@/components/ui/select";
 import { branches } from "@/data";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { buildRoutePath, RoutingWaypoint } from "@/lib/routing";
+import { toastError, toastInfo, toastSuccess, TOAST_MSGS } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useOrdersStore } from "@/store/orders";
 import { useRoutesStore } from "@/store/routes";
@@ -383,7 +384,9 @@ export default function RoutesPage() {
 
   function saveManualRoute() {
     if (!branch || !driverId || !vehicleId || !date || !startTime || !endTime || selectedOrders.length === 0) {
-      dispatchPlanner({ type: "patch", patch: { notice: "Completa conductor, vehículo, fecha, jornada y al menos una encomienda para generar la ruta." } });
+      const msg = "Completa conductor, vehículo, fecha, jornada y al menos una encomienda para generar la ruta.";
+      dispatchPlanner({ type: "patch", patch: { notice: msg } });
+      toastError(msg);
       return;
     }
 
@@ -429,6 +432,7 @@ export default function RoutesPage() {
       type: "routeCreated",
       notice: `${createdRoute.code} generada con ${selectedOrders.length} paradas. El camino local queda como previsualización hasta integrar el servicio de ruteo.`,
     });
+    toastSuccess(`${TOAST_MSGS.routeGenerated} ${createdRoute.code} — ${selectedOrders.length} paradas`);
   }
 
   return (
@@ -678,7 +682,14 @@ export default function RoutesPage() {
         title="Eliminar ruta"
         description={`Esta acción eliminará la ruta ${deletingRoute?.code ?? ""}. No se puede deshacer.`}
         onConfirm={() => {
-          if (deletingRoute) removeRoute(deletingRoute.id);
+          try {
+            if (deletingRoute) {
+              removeRoute(deletingRoute.id);
+              toastSuccess(TOAST_MSGS.deleted("Ruta"));
+            }
+          } catch {
+            toastError(TOAST_MSGS.deleteError("la ruta"));
+          }
         }}
       />
     </div>

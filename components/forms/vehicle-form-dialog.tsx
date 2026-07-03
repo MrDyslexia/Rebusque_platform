@@ -12,6 +12,7 @@ import { Select } from "@/components/ui/select";
 import { useVehiclesStore } from "@/store/vehicles";
 import { branches, users } from "@/data";
 import { Vehicle, VehicleStatus, VehicleType } from "@/types";
+import { toastError, toastSuccess, TOAST_MSGS } from "@/lib/toast";
 import { runValidators, validateNumber, validatePlate } from "@/lib/validators";
 
 interface VehicleFormDialogProps {
@@ -140,12 +141,18 @@ export function VehicleFormDialog({ open, onOpenChange, vehicle }: VehicleFormDi
       currentDriverId: form.currentDriverId || null,
     };
 
-    if (isEdit && vehicle) {
-      updateVehicle(vehicle.id, payload);
-    } else {
-      addVehicle(payload as never);
+    try {
+      if (isEdit && vehicle) {
+        updateVehicle(vehicle.id, payload);
+        toastSuccess(TOAST_MSGS.updated("Vehículo"));
+      } else {
+        addVehicle(payload as never);
+        toastSuccess(TOAST_MSGS.created("Vehículo"));
+      }
+      onOpenChange(false);
+    } catch {
+      toastError(TOAST_MSGS.saveError("el vehículo"));
     }
-    onOpenChange(false);
   }
 
   return (
